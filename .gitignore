@@ -24,4 +24,4 @@ hs_err_pid*
 
 /.idea
 /xraft2.iml
-/out
+/target

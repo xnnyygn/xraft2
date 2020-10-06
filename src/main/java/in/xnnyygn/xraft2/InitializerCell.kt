@@ -56,8 +56,4 @@ class InitializerCell : Cell() {
             context.startChild(AcceptorCell(connections!!))
         }
     }
-
-    override fun stop(context: CellContext) {
-        // TODO stop all children
-    }
 }

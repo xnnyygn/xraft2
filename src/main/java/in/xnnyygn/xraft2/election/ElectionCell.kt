@@ -41,7 +41,7 @@ class Election(
     private val connections: CellRef
 ) {
     private var electionState: ElectionState = FollowerState(nodeState)
-    private var electionTimeout: ScheduledFuture<Unit>? = null
+    private var electionTimeout: ScheduledFuture<*>? = null
 
     fun scheduleTimeout(context: CellContext) {
         electionTimeout = context.schedule(1, TimeUnit.SECONDS, ElectionTimeoutMessage)
