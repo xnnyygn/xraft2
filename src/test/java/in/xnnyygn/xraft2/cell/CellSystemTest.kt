@@ -1,5 +1,6 @@
 package `in`.xnnyygn.xraft2.cell
 
+import org.junit.jupiter.api.Disabled
 import org.junit.jupiter.api.Test
 import java.util.concurrent.TimeUnit
 
@@ -20,6 +21,7 @@ class CellSystemTest {
     object PrintMessage : Message
 
     @Test
+    @Disabled
     fun test() {
         val system = CellSystem()
         system.add(SimpleCell())
