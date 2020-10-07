@@ -9,4 +9,6 @@ interface CellContext {
     fun startChild(cell: Cell): CellRef
 
     fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*>
+
+    fun stopSelf()
 }

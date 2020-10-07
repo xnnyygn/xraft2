@@ -1,15 +1,18 @@
 package `in`.xnnyygn.xraft2.cell
 
+import java.util.concurrent.ExecutorService
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 sealed class CellExecutor(
     private val cell: Cell
-) : CellRef, CellContext {
+) : CellRef, CellContext, CellTaskExecutor {
+
     private val queue = CellQueue<Message>()
     private val children = mutableListOf<ChildCellExecutor>()
 
+    // TODO merge started and stopped to one variable of type int
     @Volatile
     private var started = false
 
@@ -29,7 +32,7 @@ sealed class CellExecutor(
             // cell is running
             return
         }
-        submit(CellTask(cell, this, queue))
+        submit(CellTask(cell, this, queue, this))
     }
 
     override fun startChild(cell: Cell): CellRef {
@@ -39,7 +42,15 @@ sealed class CellExecutor(
         return child
     }
 
-    abstract fun submit(task: CellTask)
+    override fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*> {
+        return schedule({ send(msg) }, time, unit)
+    }
+
+    abstract fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*>
+
+    override fun stopSelf() {
+        stop()
+    }
 
     open fun stop() {
         stopping = true
@@ -61,7 +72,7 @@ sealed class CellExecutor(
 
 class RootCellExecutor(
     cell: Cell,
-    private val workerGroup: CellWorkerGroup,
+    private val executorService: ExecutorService,
     private val scheduledExecutorService: ScheduledExecutorService
 ) : CellExecutor(cell) {
 
@@ -69,11 +80,11 @@ class RootCellExecutor(
         get() = EmptyCellRef
 
     override fun submit(task: CellTask) {
-        workerGroup.submit(task)
+        executorService.submit(task)
     }
 
-    override fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*> {
-        return scheduledExecutorService.schedule({ send(msg) }, time, unit)
+    override fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*> {
+        return scheduledExecutorService.schedule(action, time, unit)
     }
 }
 
@@ -86,8 +97,8 @@ class ChildCellExecutor(
         parent.submit(task)
     }
 
-    override fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*> {
-        return parent.schedule(time, unit, msg)
+    override fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*> {
+        return parent.schedule(action, time, unit)
     }
 
     override fun stop() {

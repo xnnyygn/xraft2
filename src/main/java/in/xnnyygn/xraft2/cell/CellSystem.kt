@@ -4,26 +4,26 @@ import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class CellSystem {
-    private val workerGroup = CellWorkerGroup()
-    private val scheduledExecutorService = Executors.newSingleThreadScheduledExecutor();
-    private val executors = mutableListOf<CellExecutor>()
+    private val executorService = Executors.newWorkStealingPool()
+    private val scheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
+    private val cellExecutors = mutableListOf<CellExecutor>()
 
     fun add(cell: Cell) {
-        executors.add(RootCellExecutor(cell, workerGroup, scheduledExecutorService))
+        cellExecutors.add(RootCellExecutor(cell, executorService, scheduledExecutorService))
     }
 
     fun start() {
-        workerGroup.startAll()
-        for (executor in executors) {
+        for (executor in cellExecutors) {
             executor.start()
         }
     }
 
     fun stop() {
-        for (executor in executors) {
+        for (executor in cellExecutors) {
             executor.stop()
         }
-//        workerGroup.stopAll()
+        executorService.shutdown()
+        executorService.awaitTermination(3L, TimeUnit.SECONDS)
         scheduledExecutorService.shutdown()
         scheduledExecutorService.awaitTermination(1L, TimeUnit.SECONDS)
     }
