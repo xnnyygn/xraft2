@@ -1,9 +1,15 @@
 package `in`.xnnyygn.xraft2.cell
 
+import `in`.xnnyygn.xraft2.getLogger
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 
 class CellSystem {
+    companion object {
+        @JvmStatic
+        private val logger = getLogger(CellSystem::class.java)
+    }
+
     private val executorService = Executors.newWorkStealingPool()
     private val scheduledExecutorService = Executors.newSingleThreadScheduledExecutor()
     private val cellExecutors = mutableListOf<CellExecutor>()
@@ -13,12 +19,14 @@ class CellSystem {
     }
 
     fun start() {
+        logger.info("start")
         for (executor in cellExecutors) {
             executor.start()
         }
     }
 
     fun stop() {
+        logger.info("stop")
         for (executor in cellExecutors) {
             executor.stop()
         }
