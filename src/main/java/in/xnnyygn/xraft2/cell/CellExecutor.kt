@@ -71,6 +71,7 @@ sealed class CellExecutor(
     }
 
     override fun startChild(cell: Cell): CellRef {
+        // TODO add method newExecutor
         val child = ChildCellExecutor(cell, this)
         childSet.add(child)
         logger.debug { "cell $fullName: add child ${cell.name}" }
@@ -107,6 +108,12 @@ sealed class CellExecutor(
         logger.debug { "cell $fullName: remove child ${child.name}" }
         childSet.remove(child)
     }
+
+    abstract fun removeSelfFromParent()
+
+    override fun toString(): String {
+        return "CellExecutor($fullName)"
+    }
 }
 
 class RootCellExecutor(
@@ -128,6 +135,9 @@ class RootCellExecutor(
     override fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*> {
         return scheduledExecutorService.schedule(action, time, unit)
     }
+
+    override fun removeSelfFromParent() {
+    }
 }
 
 class ChildCellExecutor(
@@ -146,8 +156,7 @@ class ChildCellExecutor(
         return parent.schedule(action, time, unit)
     }
 
-    override fun stop() {
-        super.stop()
+    override fun removeSelfFromParent() {
         parent.removeChild(this)
     }
 }

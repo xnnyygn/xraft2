@@ -19,7 +19,10 @@ class CellSystem {
         worker.name = ("worker-" + workerId.getAndIncrement())
         worker
     }
-    private val executorService = ForkJoinPool(Runtime.getRuntime().availableProcessors(), workerFactory, null, true)
+    private val uncaughtExceptionHandler =
+        Thread.UncaughtExceptionHandler { _, t -> logger.warn("uncaught exception", t) }
+    private val executorService =
+        ForkJoinPool(Runtime.getRuntime().availableProcessors(), workerFactory, uncaughtExceptionHandler, true)
     private val scheduledExecutorService =
         Executors.newSingleThreadScheduledExecutor { r -> Thread(r, "scheduler") }
     private val cellExecutors = mutableListOf<CellExecutor>()

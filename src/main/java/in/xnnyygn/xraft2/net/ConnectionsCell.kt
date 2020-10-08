@@ -5,7 +5,6 @@ import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.Message
 
 class ConnectionsCell: Cell() {
-
     override fun start(context: CellContext) {
     }
 

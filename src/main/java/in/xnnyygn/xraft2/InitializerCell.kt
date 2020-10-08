@@ -14,6 +14,10 @@ import `in`.xnnyygn.xraft2.net.AcceptorInitializedMessage
 import `in`.xnnyygn.xraft2.net.ConnectionsCell
 
 class InitializerCell : Cell() {
+    companion object {
+        private val logger = getLogger(InitializerCell::class.java)
+    }
+
     private var connections: CellRef? = null
     private var election: CellRef? = null
     private var electionInitialized = false
@@ -47,12 +51,14 @@ class InitializerCell : Cell() {
             logInitialized = true
             electionOrLogInitialized(context)
         } else if (msg == AcceptorInitializedMessage) {
+            logger.info("enable election")
             election!!.send(EnableElectionMessage)
         }
     }
 
     private fun electionOrLogInitialized(context: CellContext) {
         if (electionInitialized && logInitialized) {
+            logger.debug("election and log initialized")
             context.startChild(AcceptorCell(connections!!))
         }
     }

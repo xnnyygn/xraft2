@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit
 interface CellContext {
     val parent: CellRef
 
+    // TODO remove me
     val logger: Logger
 
     fun startChild(cell: Cell): CellRef
