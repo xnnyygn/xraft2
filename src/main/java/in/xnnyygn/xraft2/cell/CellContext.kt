@@ -1,10 +1,13 @@
 package `in`.xnnyygn.xraft2.cell
 
+import `in`.xnnyygn.xraft2.Logger
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
 interface CellContext {
     val parent: CellRef
+
+    val logger: Logger
 
     fun startChild(cell: Cell): CellRef
 

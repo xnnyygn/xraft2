@@ -5,21 +5,25 @@ import org.slf4j.LoggerFactory
 typealias LazyString = () -> String
 
 interface Logger {
+    val debugEnabled: Boolean
     fun debug(msg: String)
     fun debug(msg: String, throwable: Throwable)
     fun debug(msg: LazyString)
     fun debug(throwable: Throwable, msg: LazyString)
 
+    val infoEnabled: Boolean
     fun info(msg: String)
     fun info(msg: String, throwable: Throwable)
     fun info(msg: LazyString)
     fun info(throwable: Throwable, msg: LazyString)
 
+    val warnEnabled: Boolean
     fun warn(msg: String)
     fun warn(msg: String, throwable: Throwable)
     fun warn(msg: LazyString)
     fun warn(throwable: Throwable, msg: LazyString)
 
+    val errorEnabled: Boolean
     fun error(msg: String)
     fun error(msg: String, throwable: Throwable)
     fun error(msg: LazyString)
@@ -29,6 +33,9 @@ interface Logger {
 fun <T> getLogger(clazz: Class<T>): Logger = Slf4jLogger(LoggerFactory.getLogger(clazz))
 
 class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
+    override val debugEnabled: Boolean
+        get() = delegate.isDebugEnabled
+
     override fun debug(msg: String) {
         delegate.debug(msg)
     }
@@ -48,6 +55,9 @@ class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
             delegate.debug(msg(), throwable)
         }
     }
+
+    override val infoEnabled: Boolean
+        get() = delegate.isInfoEnabled
 
     override fun info(msg: String) {
         delegate.info(msg)
@@ -69,6 +79,9 @@ class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
         }
     }
 
+    override val warnEnabled: Boolean
+        get() = delegate.isWarnEnabled
+
     override fun warn(msg: String) {
         delegate.warn(msg)
     }
@@ -88,6 +101,9 @@ class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
             delegate.warn(msg(), throwable)
         }
     }
+
+    override val errorEnabled: Boolean
+        get() = delegate.isErrorEnabled
 
     override fun error(msg: String) {
         delegate.error(msg)
