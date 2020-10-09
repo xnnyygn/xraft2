@@ -2,12 +2,12 @@ package `in`.xnnyygn.xraft2.election
 
 import `in`.xnnyygn.xraft2.NodeState
 import `in`.xnnyygn.xraft2.NodeStateFileCell
-import `in`.xnnyygn.xraft2.NodeStateLoadedMessage
+import `in`.xnnyygn.xraft2.NodeStateLoadedEvent
 import `in`.xnnyygn.xraft2.cell.Cell
 import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.CellRef
-import `in`.xnnyygn.xraft2.cell.Message
-import `in`.xnnyygn.xraft2.net.PeerRpcMessage
+import `in`.xnnyygn.xraft2.cell.CellEvent
+import `in`.xnnyygn.xraft2.net.PeerMessageEvent
 import `in`.xnnyygn.xraft2.net.RequestVoteRpc
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
@@ -23,13 +23,13 @@ class ElectionCell(private val connections: CellRef) : Cell() {
         nodeStateFile = context.startChild(NodeStateFileCell())
     }
 
-    override fun receive(context: CellContext, msg: Message) {
-        if (msg is NodeStateLoadedMessage) {
-            _election = Election(msg.state, nodeStateFile!!, connections)
-            context.parent.send(ElectionInitializedMessage)
-        } else if (msg == EnableElectionMessage) {
+    override fun receive(context: CellContext, event: CellEvent) {
+        if (event is NodeStateLoadedEvent) {
+            _election = Election(event.state, nodeStateFile!!, connections)
+            context.parent.tell(ElectionInitializedEvent)
+        } else if (event == EnableElectionEvent) {
             election.scheduleTimeout(context)
-        } else if (msg == ElectionTimeoutMessage) {
+        } else if (event == ElectionTimeoutEvent) {
             election.electionTimeout()
         }
     }
@@ -44,14 +44,14 @@ class Election(
     private var electionTimeout: ScheduledFuture<*>? = null
 
     fun scheduleTimeout(context: CellContext) {
-        electionTimeout = context.schedule(1, TimeUnit.SECONDS, ElectionTimeoutMessage)
+        electionTimeout = context.schedule(1, TimeUnit.SECONDS, ElectionTimeoutEvent)
     }
 
     fun electionTimeout() {
         // TODO become candidate
         electionState = CandidateState(electionState.term + 1)
         // TODO send request vote to all peers
-        connections.send(PeerRpcMessage(RequestVoteRpc()))
+        connections.tell(PeerMessageEvent(RequestVoteRpc()))
         // schedule election timeout
     }
 }
@@ -59,11 +59,11 @@ class Election(
 /**
  * to [InitializerCell]
  */
-object ElectionInitializedMessage : Message
+object ElectionInitializedEvent : CellEvent
 
 /**
  * from [InitializerCell]
  */
-object EnableElectionMessage : Message
+object EnableElectionEvent : CellEvent
 
-object ElectionTimeoutMessage : Message
+object ElectionTimeoutEvent : CellEvent

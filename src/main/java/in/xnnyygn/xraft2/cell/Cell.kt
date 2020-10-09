@@ -5,7 +5,7 @@ abstract class Cell {
 
     open fun start(context: CellContext) {}
 
-    abstract fun receive(context: CellContext, msg: Message)
+    abstract fun receive(context: CellContext, event: CellEvent)
 
     open fun stop(context: CellContext) {}
 }

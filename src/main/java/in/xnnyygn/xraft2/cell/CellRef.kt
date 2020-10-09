@@ -1,10 +1,10 @@
 package `in`.xnnyygn.xraft2.cell
 
 interface CellRef {
-    fun send(msg: Message)
+    fun tell(event: CellEvent)
 }
 
 object EmptyCellRef : CellRef {
-    override fun send(msg: Message) {
+    override fun tell(event: CellEvent) {
     }
 }

@@ -17,12 +17,15 @@ sealed class CellExecutor(
         private const val STATUS_STOPPING_OR_STOPPED = 2
     }
 
-    private val queue = CellQueue<Message>()
+    private val queue = CellQueue<CellEvent>()
     private val _status = AtomicInteger(STATUS_NOT_STARTED)
     private val childSet = CellChildSet()
 
     private val status: Int
         get() = _status.get()
+
+    override val self: CellRef
+        get() = this
 
     private val name: String = cell.name
 
@@ -31,7 +34,7 @@ sealed class CellExecutor(
     open fun start() {
         updateStatus(STATUS_NOT_STARTED, STATUS_STARTING_OR_STARTED)
         logger.debug("start")
-        submit(CellStartMessage)
+        submit(CellStartEvent)
     }
 
     private fun updateStatus(expected: Int, newStatus: Int) {
@@ -51,19 +54,19 @@ sealed class CellExecutor(
         }
     }
 
-    private fun submit(msg: Message) {
-        if (queue.offerAndCount(msg) > 1) {
+    private fun submit(event: CellEvent) {
+        if (queue.offerAndCount(event) > 1) {
             // cell is running
             return
         }
         submit(CellTask(cell, this, queue, this))
     }
 
-    override fun send(msg: Message) {
+    override fun tell(event: CellEvent) {
         // cannot send message to a cell when it is not started or it is stopping or already stopped
         ensureStatus(STATUS_STARTING_OR_STARTED)
-        logger.debug("message $msg")
-        submit(msg)
+        logger.debug("message $event")
+        submit(event)
     }
 
     override fun startChild(cell: Cell): CellRef {
@@ -75,9 +78,9 @@ sealed class CellExecutor(
         return child
     }
 
-    override fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*> {
-        logger.debug { "schedule $msg after $time $unit" }
-        return schedule({ send(msg) }, time, unit)
+    override fun schedule(time: Long, unit: TimeUnit, event: CellEvent): ScheduledFuture<*> {
+        logger.debug { "schedule $event after $time $unit" }
+        return schedule({ tell(event) }, time, unit)
     }
 
     abstract fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*>
@@ -97,7 +100,7 @@ sealed class CellExecutor(
         logger.debug("stop")
         updateStatus(STATUS_STARTING_OR_STARTED, STATUS_STOPPING_OR_STOPPED)
         childSet.stopAllAndAwait()
-        submit(CellStopMessage)
+        submit(CellStopEvent)
     }
 
     fun removeChild(child: CellExecutor) {

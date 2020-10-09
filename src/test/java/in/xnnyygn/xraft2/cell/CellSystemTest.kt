@@ -8,18 +8,18 @@ import java.util.concurrent.TimeUnit
 class CellSystemTest {
     class SchedulerCell(private val countDownLatch: CountDownLatch) : Cell() {
         override fun start(context: CellContext) {
-            context.schedule(100L, TimeUnit.MILLISECONDS, PrintMessage)
+            context.schedule(100L, TimeUnit.MILLISECONDS, PrintEvent)
         }
 
-        override fun receive(context: CellContext, msg: Message) {
-            if (msg == PrintMessage) {
+        override fun receive(context: CellContext, event: CellEvent) {
+            if (event == PrintEvent) {
                 context.logger.info("hello")
                 countDownLatch.countDown()
             }
         }
     }
 
-    object PrintMessage : Message {
+    object PrintEvent : CellEvent {
         override fun toString() = "PrintMessage"
     }
 
@@ -39,8 +39,8 @@ class CellSystemTest {
             context.startChild(ChildCell())
         }
 
-        override fun receive(context: CellContext, msg: Message) {
-            if (msg == ChildStartedMessage) {
+        override fun receive(context: CellContext, event: CellEvent) {
+            if (event == ChildStartedEvent) {
                 context.logger.info("child started")
                 countDownLatch.countDown()
             }
@@ -53,10 +53,10 @@ class CellSystemTest {
 
     class ChildCell : Cell() {
         override fun start(context: CellContext) {
-            context.parent.send(ChildStartedMessage)
+            context.parent.tell(ChildStartedEvent)
         }
 
-        override fun receive(context: CellContext, msg: Message) {
+        override fun receive(context: CellContext, event: CellEvent) {
         }
 
         override fun stop(context: CellContext) {
@@ -64,7 +64,7 @@ class CellSystemTest {
         }
     }
 
-    object ChildStartedMessage : Message {
+    object ChildStartedEvent : CellEvent {
         override fun toString() = "ChildStartedMessage"
     }
 

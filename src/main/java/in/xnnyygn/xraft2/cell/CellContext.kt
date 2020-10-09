@@ -4,14 +4,17 @@ import `in`.xnnyygn.xraft2.Logger
 import java.util.concurrent.ScheduledFuture
 import java.util.concurrent.TimeUnit
 
+// thread safe
 interface CellContext {
+    val self: CellRef
+
     val parent: CellRef
 
     val logger: Logger
 
     fun startChild(cell: Cell): CellRef
 
-    fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*>
+    fun schedule(time: Long, unit: TimeUnit, event: CellEvent): ScheduledFuture<*>
 
     fun stopSelf()
 }
