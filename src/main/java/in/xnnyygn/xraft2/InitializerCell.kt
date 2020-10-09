@@ -10,14 +10,11 @@ import `in`.xnnyygn.xraft2.election.EnableElectionMessage
 import `in`.xnnyygn.xraft2.log.RaftLogCell
 import `in`.xnnyygn.xraft2.log.LogInitializedMessage
 import `in`.xnnyygn.xraft2.net.AcceptorCell
+import `in`.xnnyygn.xraft2.net.AcceptorInitializationFailedMessage
 import `in`.xnnyygn.xraft2.net.AcceptorInitializedMessage
 import `in`.xnnyygn.xraft2.net.ConnectionsCell
 
 class InitializerCell : Cell() {
-    companion object {
-        private val logger = getLogger(InitializerCell::class.java)
-    }
-
     private var connections: CellRef? = null
     private var election: CellRef? = null
     private var electionInitialized = false
@@ -51,15 +48,17 @@ class InitializerCell : Cell() {
             logInitialized = true
             electionOrLogInitialized(context)
         } else if (msg == AcceptorInitializedMessage) {
-            logger.info("enable election")
+            context.logger.info("enable election")
             election!!.send(EnableElectionMessage)
+        } else if (msg == AcceptorInitializationFailedMessage) {
+            context.stopSelf()
         }
     }
 
     private fun electionOrLogInitialized(context: CellContext) {
         if (electionInitialized && logInitialized) {
-            logger.debug("election and log initialized")
-            context.startChild(AcceptorCell(connections!!))
+            context.logger.debug("election and log initialized")
+            context.startChild(AcceptorCell(2301, connections!!))
         }
     }
 }

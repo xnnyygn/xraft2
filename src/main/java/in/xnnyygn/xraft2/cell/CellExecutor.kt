@@ -1,8 +1,10 @@
 package `in`.xnnyygn.xraft2.cell
 
 import `in`.xnnyygn.xraft2.Logger
-import `in`.xnnyygn.xraft2.getLogger
-import java.util.concurrent.*
+import java.util.concurrent.ExecutorService
+import java.util.concurrent.ScheduledExecutorService
+import java.util.concurrent.ScheduledFuture
+import java.util.concurrent.TimeUnit
 import java.util.concurrent.atomic.AtomicInteger
 
 sealed class CellExecutor(
@@ -10,8 +12,6 @@ sealed class CellExecutor(
 ) : CellRef, CellContext, CellTaskExecutor {
 
     companion object {
-        protected val logger = getLogger(CellExecutor::class.java)
-
         private const val STATUS_NOT_STARTED = 0
         private const val STATUS_STARTING_OR_STARTED = 1
         private const val STATUS_STOPPING_OR_STOPPED = 2
@@ -24,17 +24,13 @@ sealed class CellExecutor(
     private val status: Int
         get() = _status.get()
 
-    val name: String
-        get() = cell.name
+    private val name: String = cell.name
 
     abstract val fullName: String
 
-    override val logger: Logger
-        get() = CellExecutor.logger
-
     open fun start() {
         updateStatus(STATUS_NOT_STARTED, STATUS_STARTING_OR_STARTED)
-        logger.debug { "cell $fullName: start" }
+        logger.debug("start")
         submit(CellStartMessage)
     }
 
@@ -66,7 +62,7 @@ sealed class CellExecutor(
     override fun send(msg: Message) {
         // cannot send message to a cell when it is not started or it is stopping or already stopped
         ensureStatus(STATUS_STARTING_OR_STARTED)
-        logger.debug("cell $fullName: message $msg")
+        logger.debug("message $msg")
         submit(msg)
     }
 
@@ -74,13 +70,13 @@ sealed class CellExecutor(
         // TODO add method newExecutor
         val child = ChildCellExecutor(cell, this)
         childSet.add(child)
-        logger.debug { "cell $fullName: add child ${cell.name}" }
+        logger.debug { "add child ${cell.name}" }
         child.start()
         return child
     }
 
     override fun schedule(time: Long, unit: TimeUnit, msg: Message): ScheduledFuture<*> {
-        logger.debug { "cell $fullName: schedule $msg after $time $unit" }
+        logger.debug { "schedule $msg after $time $unit" }
         return schedule({ send(msg) }, time, unit)
     }
 
@@ -98,14 +94,14 @@ sealed class CellExecutor(
         if (status == STATUS_STOPPING_OR_STOPPED) {
             return
         }
-        logger.debug { "cell $fullName: stop" }
+        logger.debug("stop")
         updateStatus(STATUS_STARTING_OR_STARTED, STATUS_STOPPING_OR_STOPPED)
         childSet.stopAllAndAwait()
         submit(CellStopMessage)
     }
 
     fun removeChild(child: CellExecutor) {
-        logger.debug { "cell $fullName: remove child ${child.name}" }
+        logger.debug { "remove child ${child.name}" }
         childSet.remove(child)
     }
 
@@ -122,11 +118,11 @@ class RootCellExecutor(
     private val scheduledExecutorService: ScheduledExecutorService
 ) : CellExecutor(cell) {
 
-    override val parent: CellRef
-        get() = EmptyCellRef
+    override val parent: CellRef = EmptyCellRef
 
-    override val fullName: String
-        get() = ('/' + cell.name)
+    override val fullName = ('/' + cell.name)
+
+    override val logger: Logger = CellLogger("cell://${cell.name}")
 
     override fun submit(task: CellTask) {
         executorService.submit(task)
@@ -145,8 +141,9 @@ class ChildCellExecutor(
     override val parent: CellExecutor
 ) : CellExecutor(cell) {
 
-    override val fullName: String
-        get() = (parent.fullName + '/' + cell.name)
+    override val fullName = (parent.fullName + '/' + cell.name)
+
+    override val logger: Logger = CellLogger("cell:/$fullName")
 
     override fun submit(task: CellTask) {
         parent.submit(task)

@@ -1,60 +1,42 @@
-package `in`.xnnyygn.xraft2
+package `in`.xnnyygn.xraft2.cell
 
+import `in`.xnnyygn.xraft2.LazyString
+import `in`.xnnyygn.xraft2.Logger
 import org.slf4j.LoggerFactory
+import org.slf4j.MarkerFactory
 
-typealias LazyString = () -> String
+class CellLogger(private val name: String) : Logger {
+    companion object {
+        private val delegate = LoggerFactory.getLogger("cell")
+        private val marker = MarkerFactory.getMarker("CELL")
+    }
 
-interface Logger {
-    val debugEnabled: Boolean
-    fun debug(msg: String)
-    fun debug(msg: String, throwable: Throwable)
-    fun debug(msg: LazyString)
-    fun debug(throwable: Throwable, msg: LazyString)
-
-    val infoEnabled: Boolean
-    fun info(msg: String)
-    fun info(msg: String, throwable: Throwable)
-    fun info(msg: LazyString)
-    fun info(throwable: Throwable, msg: LazyString)
-
-    val warnEnabled: Boolean
-    fun warn(msg: String)
-    fun warn(msg: String, throwable: Throwable)
-    fun warn(msg: LazyString)
-    fun warn(throwable: Throwable, msg: LazyString)
-
-    val errorEnabled: Boolean
-    fun error(msg: String)
-    fun error(msg: String, throwable: Throwable)
-    fun error(msg: LazyString)
-    fun error(throwable: Throwable, msg: LazyString)
-}
-
-fun <T> getLogger(clazz: Class<T>): Logger = Slf4jLogger(LoggerFactory.getLogger(clazz))
-
-fun getLogger(name: String): Logger = Slf4jLogger(LoggerFactory.getLogger(name))
-
-class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
     override val debugEnabled: Boolean
         get() = delegate.isDebugEnabled
 
     override fun debug(msg: String) {
-        delegate.debug(msg)
+        if (delegate.isDebugEnabled) {
+            delegate.debug(marker, concat(msg))
+        }
     }
 
+    private fun concat(msg: String) = "$name - $msg"
+
     override fun debug(msg: String, throwable: Throwable) {
-        delegate.debug(msg, throwable)
+        if (delegate.isDebugEnabled) {
+            delegate.debug(marker, concat(msg), throwable)
+        }
     }
 
     override fun debug(msg: LazyString) {
         if (delegate.isDebugEnabled) {
-            delegate.debug(msg())
+            delegate.debug(marker, concat(msg()))
         }
     }
 
     override fun debug(throwable: Throwable, msg: LazyString) {
         if (delegate.isDebugEnabled) {
-            delegate.debug(msg(), throwable)
+            delegate.debug(marker, concat(msg()), throwable)
         }
     }
 
@@ -62,22 +44,26 @@ class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
         get() = delegate.isInfoEnabled
 
     override fun info(msg: String) {
-        delegate.info(msg)
+        if (delegate.isInfoEnabled) {
+            delegate.info(marker, concat(msg))
+        }
     }
 
     override fun info(msg: String, throwable: Throwable) {
-        delegate.info(msg, throwable)
+        if (delegate.isInfoEnabled) {
+            delegate.info(marker, concat(msg), throwable)
+        }
     }
 
     override fun info(msg: LazyString) {
         if (delegate.isInfoEnabled) {
-            delegate.info(msg())
+            delegate.info(marker, concat(msg()))
         }
     }
 
     override fun info(throwable: Throwable, msg: LazyString) {
         if (delegate.isInfoEnabled) {
-            delegate.info(msg(), throwable)
+            delegate.info(marker, concat(msg()), throwable)
         }
     }
 
@@ -85,22 +71,26 @@ class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
         get() = delegate.isWarnEnabled
 
     override fun warn(msg: String) {
-        delegate.warn(msg)
+        if (delegate.isWarnEnabled) {
+            delegate.warn(marker, concat(msg))
+        }
     }
 
     override fun warn(msg: String, throwable: Throwable) {
-        delegate.warn(msg, throwable)
+        if (delegate.isWarnEnabled) {
+            delegate.warn(marker, concat(msg), throwable)
+        }
     }
 
     override fun warn(msg: LazyString) {
         if (delegate.isWarnEnabled) {
-            delegate.warn(msg())
+            delegate.warn(marker, concat(msg()))
         }
     }
 
     override fun warn(throwable: Throwable, msg: LazyString) {
         if (delegate.isWarnEnabled) {
-            delegate.warn(msg(), throwable)
+            delegate.warn(marker, concat(msg()), throwable)
         }
     }
 
@@ -108,22 +98,26 @@ class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
         get() = delegate.isErrorEnabled
 
     override fun error(msg: String) {
-        delegate.error(msg)
+        if (delegate.isErrorEnabled) {
+            delegate.error(marker, concat(msg))
+        }
     }
 
     override fun error(msg: String, throwable: Throwable) {
-        delegate.error(msg, throwable)
+        if (delegate.isErrorEnabled) {
+            delegate.error(marker, concat(msg), throwable)
+        }
     }
 
     override fun error(msg: LazyString) {
         if (delegate.isErrorEnabled) {
-            delegate.error(msg())
+            delegate.error(marker, concat(msg()))
         }
     }
 
     override fun error(throwable: Throwable, msg: LazyString) {
         if (delegate.isErrorEnabled) {
-            delegate.error(msg(), throwable)
+            delegate.error(marker, concat(msg()), throwable)
         }
     }
 }
