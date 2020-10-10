@@ -21,16 +21,17 @@ internal class ConnectionCell(
             is PendingMessageEvent -> handlePendingMessage(context, event)
             is PeerMessageEvent -> channel.write(event.message)
             is PeerMessageForwardEvent -> forwardPeerMessage(context, event.message)
-            is EnableLogReplicationEvent -> enableLogReplication(context)
+            is EnableLogReplicationEvent -> enableLogReplication(context, event.term)
             is DisableLogReplicationEvent -> disableLogReplication(context)
+            // move PoisonPill to CellTask?
             is PoisonPill -> context.stopSelf()
         }
     }
 
-    private fun enableLogReplication(context: CellContext) {
+    private fun enableLogReplication(context: CellContext, term: Int) {
         if (replicator == null) {
             context.logger.info("enable log replication")
-            replicator = context.startChild(PeerLogReplicatorCell(address, channel))
+            replicator = context.startChild(PeerLogReplicatorCell(term, address, channel))
         }
     }
 
@@ -47,10 +48,8 @@ internal class ConnectionCell(
         if (event.queue != null) {
             channel.write(event.queue.lastMessage)
         }
-        if (event.logReplicationEnabled) {
-            enableLogReplication(context)
-        } else {
-            disableLogReplication(context)
+        when (val logReplicationEvent = event.logReplicationEvent) {
+            is EnableLogReplicationEvent -> enableLogReplication(context, logReplicationEvent.term)
         }
     }
 
@@ -76,9 +75,13 @@ internal class ConnectionCell(
 
 class PeerMessageEvent(val message: PeerMessage) : Event
 
-class ConnectionMessageEvent(val message: PeerMessage, val connection: CellRef) : CellEvent(connection)
+class ConnectionMessageEvent(val message: PeerMessage, val connection: CellRef) : CellEvent(connection) {
+    fun reply(message: PeerMessage) {
+        reply(PeerMessageEvent(message))
+    }
+}
 
-object EnableLogReplicationEvent : Event
+class EnableLogReplicationEvent(val term: Int) : Event
 object DisableLogReplicationEvent : Event
 
 internal class PeerMessageForwardEvent(val message: PeerMessage) : Event

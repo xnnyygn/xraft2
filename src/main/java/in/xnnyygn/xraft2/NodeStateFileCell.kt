@@ -16,3 +16,4 @@ class NodeStateFileCell: Cell() {
 }
 
 data class NodeStateLoadedEvent(val state: NodeState): Event
+data class NodeStateUpdatedEvent(val state: NodeState): Event

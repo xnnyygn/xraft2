@@ -1,5 +1,6 @@
 package `in`.xnnyygn.xraft2.net
 
+import `in`.xnnyygn.xraft2.NameDuplicatedEvent
 import `in`.xnnyygn.xraft2.cell.*
 import `in`.xnnyygn.xraft2.log.NewPeerLogReplicationDoneEvent
 import `in`.xnnyygn.xraft2.log.NewPeerLogReplicatorCell
@@ -33,6 +34,7 @@ class NewPeerConnectionSetCell(
         if (task == null) {
             context.logger.warn("unknown new peer ${address.name}")
         } else {
+            context.logger.info { "connection closed, node ${address.name}" }
             task.reply(event)
             connectionMap.remove(address)?.stopReplicator()
         }
@@ -108,7 +110,6 @@ class NewPeerConnectionSetCell(
 
     private fun addNewPeerConnection(context: CellContext, channel: Channel, address: NodeAddress) {
         val closeListener: CloseListener = {
-            context.logger.info { "connection closed, node $address" }
             context.self.tell(ConnectionClosedEvent(address))
         }
         channel.closeFuture().addListener(closeListener)

@@ -1,5 +1,6 @@
 package `in`.xnnyygn.xraft2.net
 
+import `in`.xnnyygn.xraft2.NameDuplicatedEvent
 import `in`.xnnyygn.xraft2.cell.*
 import io.netty.channel.Channel
 import io.netty.channel.nio.NioEventLoopGroup
@@ -13,7 +14,7 @@ class ConnectionSetCell(
     private val addressMap = addresses.associateByTo(mutableMapOf()) { it.name }
     private val connectionMap = mutableMapOf<NodeAddress, CellRef>()
     private val pendingMessagesMap = mutableMapOf<NodeAddress, PendingMessageQueue>()
-    private var logReplicationEnabled = false
+    private var logReplicationEvent: Event? = null
 
     private val newPeerConnectionSet: CellRef
         get() = _newPeerConnectionSet!!
@@ -32,8 +33,13 @@ class ConnectionSetCell(
             is NewPeerCellEvent -> addNewPeer(event)
             is NewPeerChannelEvent -> upgradeNewPeer(context, event)
             is ClientConnectionFailedEvent -> pendingMessagesMap.remove(event.address)
-            is ConnectionClosedEvent -> connectionMap.remove(event.address) // TODO also remove from newPeerLogReplicatorMap
+            is ConnectionClosedEvent -> connectionClosed(context, event.address)
         }
+    }
+
+    private fun connectionClosed(context: CellContext, address: NodeAddress) {
+        context.logger.info { "connection closed, node ${address.name}" }
+        connectionMap.remove(address)?.tell(PoisonPill)
     }
 
     private fun upgradeNewPeer(context: CellContext, event: NewPeerChannelEvent) {
@@ -87,7 +93,7 @@ class ConnectionSetCell(
 
     private fun enableOrDisableLogReplication(context: CellContext, event: Event, enabled: Boolean) {
         context.logger.info("logReplicationEnabled -> $enabled")
-        logReplicationEnabled = enabled
+        logReplicationEvent = event
         for (connection in connectionMap.values) {
             connection.tell(event)
         }
@@ -115,13 +121,12 @@ class ConnectionSetCell(
 
     private fun addConnection(context: CellContext, channel: Channel, address: NodeAddress) {
         channel.closeFuture().addListener {
-            context.logger.info { "connection closed, node $address" }
             context.self.tell(ConnectionClosedEvent(address))
         }
         val connection = context.startChild(ConnectionCell(address, channel))
         connectionMap[address] = connection
         val queue = pendingMessagesMap.remove(address)
-        connection.tell(PendingMessageEvent(queue, logReplicationEnabled))
+        connection.tell(PendingMessageEvent(queue, logReplicationEvent))
     }
 
     override fun stop(context: CellContext) {
@@ -141,6 +146,5 @@ internal class PendingMessageQueue(firstMessage: PeerMessage) {
 }
 
 class NewPeerCellEvent(val address: NodeAddress, sender: CellRef) : CellEvent(sender)
-class NameDuplicatedEvent(val address: NodeAddress) : Event
 
-internal class PendingMessageEvent(val queue: PendingMessageQueue?, val logReplicationEnabled: Boolean) : Event
+internal class PendingMessageEvent(val queue: PendingMessageQueue?, val logReplicationEvent: Event?) : Event

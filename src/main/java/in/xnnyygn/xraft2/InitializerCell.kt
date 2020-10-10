@@ -31,8 +31,8 @@ class InitializerCell(
      */
     override fun start(context: CellContext) {
         val connections = context.startChild(ConnectionSetCell("A", mutableListOf(), workerGroup))
-        val election = context.startChild(ElectionCell(connections))
         val raftLog = context.startChild(RaftLogCell(connections))
+        val election = context.startChild(ElectionCell("A", emptyList(), raftLog, connections))
         val serverList = context.startChild(ServerListCell())
         context.startChild(LogSynchronizerCell(election, raftLog, serverList))
 
