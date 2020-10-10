@@ -3,7 +3,7 @@ package `in`.xnnyygn.xraft2.net
 import `in`.xnnyygn.xraft2.cell.Cell
 import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.CellRef
-import `in`.xnnyygn.xraft2.cell.CellEvent
+import `in`.xnnyygn.xraft2.cell.Event
 import `in`.xnnyygn.xraft2.getLogger
 import io.netty.bootstrap.Bootstrap
 import io.netty.channel.*
@@ -15,6 +15,7 @@ class ClientCell(
     private val destination: NodeAddress,
     private val workerGroup: NioEventLoopGroup
 ) : Cell() {
+    private var done = false
     private var channelFuture: ChannelFuture? = null
 
     override val name: String = "Client(${destination})"
@@ -28,7 +29,7 @@ class ClientCell(
                 @Throws(Exception::class)
                 override fun initChannel(ch: NioSocketChannel) {
                     val pipeline: ChannelPipeline = ch.pipeline()
-                    pipeline.addLast(OutgoingHandshakeHandler(sourceName, destination, context.parent))
+                    pipeline.addLast(OutgoingHandshakeHandler(sourceName, destination, context.self))
                 }
             })
         channelFuture = bootstrap
@@ -42,11 +43,20 @@ class ClientCell(
             }
     }
 
-    override fun receive(context: CellContext, event: CellEvent) {
+    override fun receive(context: CellContext, event: Event) {
+        if (event is OutgoingChannelEvent) {
+            done = true
+            context.logger.info("handshake successfully $sourceName -> ${destination.name}")
+            event.channel.pipeline().removeLast()
+            context.parent.tell(event)
+            context.stopSelf()
+        }
     }
 
     override fun stop(context: CellContext) {
-        val f = this.channelFuture ?: return
+        if (done) return
+
+        val f = this.channelFuture!!
         if (f.isCancellable) {
             f.cancel(true)
             f.await()
@@ -57,7 +67,7 @@ class ClientCell(
 internal class OutgoingHandshakeHandler(
     private val sourceName: String,
     private val destination: NodeAddress,
-    private val connectionPool: CellRef
+    private val client: CellRef
 ) : ChannelInboundHandlerAdapter() {
     companion object {
         val logger = getLogger(OutgoingHandshakeHandler::class.java)
@@ -90,12 +100,11 @@ internal class OutgoingHandshakeHandler(
             }
             else -> {
                 handshake = true
-                logger.info("handshake successfully $sourceName -> ${destination.name}")
-                connectionPool.tell(OutgoingChannelEvent(ctx.channel(), destination))
+                client.tell(OutgoingChannelEvent(ctx.channel(), destination))
             }
         }
     }
 }
 
-internal class OutgoingChannelEvent(val channel: Channel, val address: NodeAddress) : CellEvent
-internal class ClientConnectionFailedEvent(val address: NodeAddress) : CellEvent
+internal class OutgoingChannelEvent(val channel: Channel, val address: NodeAddress) : Event
+internal class ClientConnectionFailedEvent(val address: NodeAddress) : Event

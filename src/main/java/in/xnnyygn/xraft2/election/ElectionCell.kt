@@ -6,7 +6,7 @@ import `in`.xnnyygn.xraft2.NodeStateLoadedEvent
 import `in`.xnnyygn.xraft2.cell.Cell
 import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.CellRef
-import `in`.xnnyygn.xraft2.cell.CellEvent
+import `in`.xnnyygn.xraft2.cell.Event
 import `in`.xnnyygn.xraft2.net.PeerMessageEvent
 import `in`.xnnyygn.xraft2.net.RequestVoteRpc
 import java.util.concurrent.ScheduledFuture
@@ -23,7 +23,7 @@ class ElectionCell(private val connections: CellRef) : Cell() {
         nodeStateFile = context.startChild(NodeStateFileCell())
     }
 
-    override fun receive(context: CellContext, event: CellEvent) {
+    override fun receive(context: CellContext, event: Event) {
         if (event is NodeStateLoadedEvent) {
             _election = Election(event.state, nodeStateFile!!, connections)
             context.parent.tell(ElectionInitializedEvent)
@@ -59,11 +59,11 @@ class Election(
 /**
  * to [InitializerCell]
  */
-object ElectionInitializedEvent : CellEvent
+object ElectionInitializedEvent : Event
 
 /**
  * from [InitializerCell]
  */
-object EnableElectionEvent : CellEvent
+object EnableElectionEvent : Event
 
-object ElectionTimeoutEvent : CellEvent
+object ElectionTimeoutEvent : Event

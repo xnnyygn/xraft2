@@ -5,11 +5,12 @@ import `in`.xnnyygn.xraft2.Logger
 import org.slf4j.LoggerFactory
 import org.slf4j.MarkerFactory
 
-class CellLogger(private val name: String) : Logger {
+class CellLogger(private val name: String, clazz: Class<*>) : Logger {
     companion object {
-        private val delegate = LoggerFactory.getLogger("cell")
         private val marker = MarkerFactory.getMarker("CELL")
     }
+
+    private val delegate = LoggerFactory.getLogger(clazz)
 
     override val debugEnabled: Boolean
         get() = delegate.isDebugEnabled

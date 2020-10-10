@@ -4,7 +4,7 @@ import `in`.xnnyygn.xraft2.FixedThreadFactory
 import `in`.xnnyygn.xraft2.cell.Cell
 import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.CellRef
-import `in`.xnnyygn.xraft2.cell.CellEvent
+import `in`.xnnyygn.xraft2.cell.Event
 import `in`.xnnyygn.xraft2.getLogger
 import io.netty.bootstrap.ServerBootstrap
 import io.netty.channel.Channel
@@ -43,7 +43,7 @@ class ServerCell(
         }
     }
 
-    override fun receive(context: CellContext, event: CellEvent) {
+    override fun receive(context: CellContext, event: Event) {
     }
 
     override fun stop(context: CellContext) {
@@ -78,7 +78,7 @@ internal class IncomingHandshakeHandler(
     inner class IncomingChannelEvent(
         val remoteName: String,
         val channel: Channel
-    ) : CellEvent {
+    ) : Event {
         fun reply() {
             handshake = true
             channel.write(HandshakeReply(name))
@@ -86,5 +86,5 @@ internal class IncomingHandshakeHandler(
     }
 }
 
-object ServerInitializedEvent : CellEvent
-object ServerInitializationFailedEvent : CellEvent
+object ServerInitializedEvent : Event
+object ServerInitializationFailedEvent : Event

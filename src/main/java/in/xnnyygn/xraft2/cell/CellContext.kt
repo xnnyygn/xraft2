@@ -14,7 +14,9 @@ interface CellContext {
 
     fun startChild(cell: Cell): CellRef
 
-    fun schedule(time: Long, unit: TimeUnit, event: CellEvent): ScheduledFuture<*>
+    fun schedule(time: Long, unit: TimeUnit, event: Event): ScheduledFuture<*>
+
+    fun findCell(path: String): CellRef
 
     fun stopSelf()
 }

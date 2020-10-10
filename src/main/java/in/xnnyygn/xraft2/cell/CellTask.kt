@@ -3,14 +3,14 @@ package `in`.xnnyygn.xraft2.cell
 class CellTask(
     private val cell: Cell,
     private val context: CellContext,
-    private val queue: CellQueue<CellEvent>,
+    private val queue: CellQueue<Event>,
     private val executor: CellExecutor
 ) : Runnable {
     override fun run() {
         when (val next = queue.peek()) {
             null -> throw IllegalStateException("no next message")
-            CellStartEvent -> start()
-            CellStopEvent -> stop()
+            InternalStartEvent -> start()
+            InternalStopEvent -> stop()
             else -> receive(next)
         }
     }
@@ -33,7 +33,7 @@ class CellTask(
         }
     }
 
-    private fun receive(event: CellEvent) {
+    private fun receive(event: Event) {
         try {
             cell.receive(context, event)
         } catch (t: Throwable) {
@@ -62,5 +62,5 @@ interface CellTaskExecutor {
     fun submit(task: CellTask)
 }
 
-internal object CellStartEvent : CellEvent
-internal object CellStopEvent : CellEvent
+internal object InternalStartEvent : Event
+internal object InternalStopEvent : Event

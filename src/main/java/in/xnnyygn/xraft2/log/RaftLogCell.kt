@@ -3,7 +3,7 @@ package `in`.xnnyygn.xraft2.log
 import `in`.xnnyygn.xraft2.cell.Cell
 import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.CellRef
-import `in`.xnnyygn.xraft2.cell.CellEvent
+import `in`.xnnyygn.xraft2.cell.Event
 
 class RaftLogCell(private val connections: CellRef) : Cell() {
     private var _raftLog: RaftLog? = null
@@ -18,7 +18,7 @@ class RaftLogCell(private val connections: CellRef) : Cell() {
         context.parent.tell(LogInitializedEvent)
     }
 
-    override fun receive(context: CellContext, event: CellEvent) {
+    override fun receive(context: CellContext, event: Event) {
         TODO("Not yet implemented")
     }
 }
@@ -26,4 +26,4 @@ class RaftLogCell(private val connections: CellRef) : Cell() {
 /**
  * from [in.xnnyygn.xraft2.InitializerCell]
  */
-object LogInitializedEvent : CellEvent
+object LogInitializedEvent : Event

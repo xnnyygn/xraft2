@@ -11,7 +11,7 @@ class CellSystemTest {
             context.schedule(100L, TimeUnit.MILLISECONDS, PrintEvent)
         }
 
-        override fun receive(context: CellContext, event: CellEvent) {
+        override fun receive(context: CellContext, event: Event) {
             if (event == PrintEvent) {
                 context.logger.info("hello")
                 countDownLatch.countDown()
@@ -19,7 +19,7 @@ class CellSystemTest {
         }
     }
 
-    object PrintEvent : CellEvent {
+    object PrintEvent : Event {
         override fun toString() = "PrintMessage"
     }
 
@@ -39,7 +39,7 @@ class CellSystemTest {
             context.startChild(ChildCell())
         }
 
-        override fun receive(context: CellContext, event: CellEvent) {
+        override fun receive(context: CellContext, event: Event) {
             if (event == ChildStartedEvent) {
                 context.logger.info("child started")
                 countDownLatch.countDown()
@@ -56,7 +56,7 @@ class CellSystemTest {
             context.parent.tell(ChildStartedEvent)
         }
 
-        override fun receive(context: CellContext, event: CellEvent) {
+        override fun receive(context: CellContext, event: Event) {
         }
 
         override fun stop(context: CellContext) {
@@ -64,7 +64,7 @@ class CellSystemTest {
         }
     }
 
-    object ChildStartedEvent : CellEvent {
+    object ChildStartedEvent : Event {
         override fun toString() = "ChildStartedMessage"
     }
 

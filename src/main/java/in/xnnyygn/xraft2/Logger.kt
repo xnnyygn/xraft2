@@ -32,8 +32,6 @@ interface Logger {
 
 fun <T> getLogger(clazz: Class<T>): Logger = Slf4jLogger(LoggerFactory.getLogger(clazz))
 
-fun getLogger(name: String): Logger = Slf4jLogger(LoggerFactory.getLogger(name))
-
 class Slf4jLogger(private val delegate: org.slf4j.Logger) : Logger {
     override val debugEnabled: Boolean
         get() = delegate.isDebugEnabled

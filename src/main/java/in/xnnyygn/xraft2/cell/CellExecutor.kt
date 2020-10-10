@@ -1,6 +1,8 @@
 package `in`.xnnyygn.xraft2.cell
 
 import `in`.xnnyygn.xraft2.Logger
+import `in`.xnnyygn.xraft2.getLogger
+import org.slf4j.LoggerFactory
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
@@ -17,7 +19,7 @@ sealed class CellExecutor(
         private const val STATUS_STOPPING_OR_STOPPED = 2
     }
 
-    private val queue = CellQueue<CellEvent>()
+    private val queue = CellQueue<Event>()
     private val _status = AtomicInteger(STATUS_NOT_STARTED)
     private val childSet = CellChildSet()
 
@@ -34,7 +36,7 @@ sealed class CellExecutor(
     open fun start() {
         updateStatus(STATUS_NOT_STARTED, STATUS_STARTING_OR_STARTED)
         logger.debug("start")
-        submit(CellStartEvent)
+        submit(InternalStartEvent)
     }
 
     private fun updateStatus(expected: Int, newStatus: Int) {
@@ -54,7 +56,7 @@ sealed class CellExecutor(
         }
     }
 
-    private fun submit(event: CellEvent) {
+    private fun submit(event: Event) {
         if (queue.offerAndCount(event) > 1) {
             // cell is running
             return
@@ -62,7 +64,7 @@ sealed class CellExecutor(
         submit(CellTask(cell, this, queue, this))
     }
 
-    override fun tell(event: CellEvent) {
+    override fun tell(event: Event) {
         // cannot send message to a cell when it is not started or it is stopping or already stopped
         ensureStatus(STATUS_STARTING_OR_STARTED)
         logger.debug("message $event")
@@ -78,7 +80,7 @@ sealed class CellExecutor(
         return child
     }
 
-    override fun schedule(time: Long, unit: TimeUnit, event: CellEvent): ScheduledFuture<*> {
+    override fun schedule(time: Long, unit: TimeUnit, event: Event): ScheduledFuture<*> {
         logger.debug { "schedule $event after $time $unit" }
         return schedule({ tell(event) }, time, unit)
     }
@@ -100,7 +102,7 @@ sealed class CellExecutor(
         logger.debug("stop")
         updateStatus(STATUS_STARTING_OR_STARTED, STATUS_STOPPING_OR_STOPPED)
         childSet.stopAllAndAwait()
-        submit(CellStopEvent)
+        submit(InternalStopEvent)
     }
 
     fun removeChild(child: CellExecutor) {
@@ -125,7 +127,7 @@ class RootCellExecutor(
 
     override val fullName = ('/' + cell.name)
 
-    override val logger: Logger = CellLogger("cell://${cell.name}")
+    override val logger: Logger = CellLogger("cell://${cell.name}", cell.javaClass)
 
     override fun submit(task: CellTask) {
         executorService.submit(task)
@@ -146,7 +148,7 @@ class ChildCellExecutor(
 
     override val fullName = (parent.fullName + '/' + cell.name)
 
-    override val logger: Logger = CellLogger("cell:/$fullName")
+    override val logger: Logger = CellLogger("cell:/$fullName", cell.javaClass)
 
     override fun submit(task: CellTask) {
         parent.submit(task)

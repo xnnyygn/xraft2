@@ -3,7 +3,7 @@ package `in`.xnnyygn.xraft2
 import `in`.xnnyygn.xraft2.cell.Cell
 import `in`.xnnyygn.xraft2.cell.CellContext
 import `in`.xnnyygn.xraft2.cell.CellRef
-import `in`.xnnyygn.xraft2.cell.CellEvent
+import `in`.xnnyygn.xraft2.cell.Event
 import `in`.xnnyygn.xraft2.election.ElectionCell
 import `in`.xnnyygn.xraft2.election.ElectionInitializedEvent
 import `in`.xnnyygn.xraft2.election.EnableElectionEvent
@@ -30,7 +30,7 @@ class InitializerCell(
      * @see electionOrLogInitialized
      */
     override fun start(context: CellContext) {
-        val connections = context.startChild(ConnectionPoolCell("A", mutableListOf(), workerGroup))
+        val connections = context.startChild(ConnectionSetCell("A", mutableListOf(), workerGroup))
         val election = context.startChild(ElectionCell(connections))
         val raftLog = context.startChild(RaftLogCell(connections))
         val serverList = context.startChild(ServerListCell())
@@ -40,7 +40,7 @@ class InitializerCell(
         this.election = election
     }
 
-    override fun receive(context: CellContext, event: CellEvent) {
+    override fun receive(context: CellContext, event: Event) {
         if (event == ElectionInitializedEvent) {
             electionInitialized = true
             electionOrLogInitialized(context)
