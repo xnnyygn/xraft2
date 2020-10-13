@@ -3,11 +3,11 @@ package `in`.xnnyygn.xraft2.cell
 class CellTask(
     private val cell: Cell,
     private val context: CellContext,
-    private val queue: CellQueue<Event>,
+    private val queue: CellQueue,
     private val executor: CellExecutor
 ) : Runnable {
     override fun run() {
-        when (val next = queue.peek()) {
+        when (val next = queue.poll()) {
             null -> throw IllegalStateException("no next message")
             InternalStartEvent -> start()
             InternalStopEvent -> stop()
@@ -28,7 +28,7 @@ class CellTask(
     }
 
     private fun submitIfHasMoreMessage() {
-        if (queue.removeAndCount() > 0) {
+        if (queue.hasNext()) {
             executor.submit(this)
         }
     }
@@ -51,7 +51,7 @@ class CellTask(
         } catch (t: Throwable) {
             context.logger.warn(t) { "failed to stop" }
         }
-        if (queue.removeAndCount() != 0) {
+        if (queue.hasNext()) {
             throw IllegalStateException("illegal new message while stopping")
         }
         executor.removeSelfFromParent()
@@ -64,3 +64,6 @@ interface CellTaskExecutor {
 
 internal object InternalStartEvent : Event
 internal object InternalStopEvent : Event
+
+internal object VoidEvent: Event
+internal class ResumeEvent(val result: Event, val cell: CellRef): Event

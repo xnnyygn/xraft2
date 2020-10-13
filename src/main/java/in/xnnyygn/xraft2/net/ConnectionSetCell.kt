@@ -7,11 +7,10 @@ import io.netty.channel.nio.NioEventLoopGroup
 
 class ConnectionSetCell(
     private val nodeName: String,
-    addresses: List<NodeAddress>,
     private val workerGroup: NioEventLoopGroup
 ) : Cell() {
     private var _newPeerConnectionSet: CellRef? = null
-    private val addressMap = addresses.associateByTo(mutableMapOf()) { it.name }
+    private val addressMap = mutableMapOf<String, NodeAddress>() // addresses.associateByTo(mutableMapOf()) { it.name }
     private val connectionMap = mutableMapOf<NodeAddress, CellRef>()
     private val pendingMessagesMap = mutableMapOf<NodeAddress, PendingMessageQueue>()
     private var logReplicationEvent: Event? = null
@@ -28,8 +27,8 @@ class ConnectionSetCell(
             is IncomingHandshakeHandler.IncomingChannelEvent -> incomingChannel(context, event)
             is OutgoingChannelEvent -> outgoingChannel(context, event)
             is PeerMessageEvent -> broadcast(context, event)
-            is EnableLogReplicationEvent -> enableOrDisableLogReplication(context, event, true)
-            is DisableLogReplicationEvent -> enableOrDisableLogReplication(context, event, false)
+            is EnablePeerLogReplicatorCellEvent -> enableOrDisableLogReplication(context, event, true)
+            is DisablePeerLogReplicatorCellEvent -> enableOrDisableLogReplication(context, event, false)
             is NewPeerCellEvent -> addNewPeer(event)
             is NewPeerChannelEvent -> upgradeNewPeer(context, event)
             is ClientConnectionFailedEvent -> pendingMessagesMap.remove(event.address)
@@ -148,3 +147,5 @@ internal class PendingMessageQueue(firstMessage: PeerMessage) {
 class NewPeerCellEvent(val address: NodeAddress, sender: CellRef) : CellEvent(sender)
 
 internal class PendingMessageEvent(val queue: PendingMessageQueue?, val logReplicationEvent: Event?) : Event
+
+class UnavailablePeerListEvent(val peers: List<NodeAddress>): Event

@@ -7,7 +7,7 @@ import `in`.xnnyygn.xraft2.cell.Event
 import `in`.xnnyygn.xraft2.election.ElectionState
 import `in`.xnnyygn.xraft2.election.Role
 
-class LogReplicatorCell(private val connections: CellRef) : Cell() {
+class LogReplicatorCell(private val term: Int) : Cell() {
     /**
      * copy of election state of current node
      */

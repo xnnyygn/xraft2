@@ -1,8 +1,6 @@
 package `in`.xnnyygn.xraft2.cell
 
 import `in`.xnnyygn.xraft2.Logger
-import `in`.xnnyygn.xraft2.getLogger
-import org.slf4j.LoggerFactory
 import java.util.concurrent.ExecutorService
 import java.util.concurrent.ScheduledExecutorService
 import java.util.concurrent.ScheduledFuture
@@ -19,7 +17,7 @@ sealed class CellExecutor(
         private const val STATUS_STOPPING_OR_STOPPED = 2
     }
 
-    private val queue = CellQueue<Event>()
+    private val queue = CellQueue()
     private val _status = AtomicInteger(STATUS_NOT_STARTED)
     private val childSet = CellChildSet()
 
@@ -56,12 +54,10 @@ sealed class CellExecutor(
         }
     }
 
-    private fun submit(event: Event) {
-        if (queue.offerAndCount(event) > 1) {
-            // cell is running
-            return
+    fun submit(event: Event) {
+        if (queue.offerAndCanRun(event)) {
+            submit(CellTask(cell, this, queue, this))
         }
-        submit(CellTask(cell, this, queue, this))
     }
 
     override fun tell(event: Event) {
@@ -71,6 +67,7 @@ sealed class CellExecutor(
         submit(event)
     }
 
+    // TODO rename cell to child
     override fun startChild(cell: Cell): CellRef {
         // TODO add method newExecutor
         val child = ChildCellExecutor(cell, this)
@@ -78,6 +75,30 @@ sealed class CellExecutor(
         logger.debug { "add child ${cell.name}" }
         child.start()
         return child
+    }
+
+    override fun suspendBy(cell: Cell) {
+        val c = ChildCellExecutor(cell, this)
+        childSet.add(c)
+        queue.suspendBy(c)
+        logger.debug { "add child ${cell.name}" }
+        c.start()
+    }
+
+    override fun suspendBy(cell: CellRef) {
+        queue.suspendBy(cell)
+    }
+
+    override fun resume(cell: CellRef) {
+        resume(cell, VoidEvent)
+    }
+
+    override fun resume(cell: CellRef, result: Event) {
+        submit(ResumeEvent(result, cell))
+    }
+
+    override fun findCell(path: String): CellRef {
+        TODO("Not yet implemented")
     }
 
     override fun schedule(time: Long, unit: TimeUnit, event: Event): ScheduledFuture<*> {
@@ -133,6 +154,12 @@ class RootCellExecutor(
         executorService.submit(task)
     }
 
+    override fun resumeParent() {
+    }
+
+    override fun resumeParent(result: Event) {
+    }
+
     override fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*> {
         return scheduledExecutorService.schedule(action, time, unit)
     }
@@ -152,6 +179,14 @@ class ChildCellExecutor(
 
     override fun submit(task: CellTask) {
         parent.submit(task)
+    }
+
+    override fun resumeParent() {
+        resumeParent(VoidEvent)
+    }
+
+    override fun resumeParent(result: Event) {
+        parent.submit(ResumeEvent(result, this))
     }
 
     override fun schedule(action: () -> Unit, time: Long, unit: TimeUnit): ScheduledFuture<*> {

@@ -26,8 +26,10 @@ class CellSystem {
         Executors.newSingleThreadScheduledExecutor(FixedThreadFactory("scheduler"))
     private val cellExecutors = mutableListOf<CellExecutor>()
 
-    fun add(cell: Cell) {
-        cellExecutors.add(RootCellExecutor(cell, executorService, scheduledExecutorService))
+    fun add(cell: Cell): CellRef {
+        val c = RootCellExecutor(cell, executorService, scheduledExecutorService)
+        cellExecutors.add(c)
+        return c
     }
 
     fun start() {

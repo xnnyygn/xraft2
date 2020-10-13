@@ -30,13 +30,19 @@ class InitializerCell(
      * @see electionOrLogInitialized
      */
     override fun start(context: CellContext) {
-        val connections = context.startChild(ConnectionSetCell("A", mutableListOf(), workerGroup))
-        val raftLog = context.startChild(RaftLogCell(connections))
-        val election = context.startChild(ElectionCell("A", emptyList(), raftLog, connections))
-        val serverList = context.startChild(ServerListCell())
-        context.startChild(LogSynchronizerCell(election, raftLog, serverList))
+        val connectionSet = context.startChild(ConnectionSetCell("A", workerGroup))
+        val raftLog = context.startChild(RaftLogCell())
+        val election = context.startChild(ElectionCell("A", raftLog, connectionSet))
+        /**
+         * load group configs from log
+         * notify node list, node list update connection set
+         */
+        // for new peer
+        // leader -> AddNewPeer, group config committed
+        // follower -> AppendEntriesRpc, group config added -> group config committed
+        context.startChild(NodeListCell(raftLog, connectionSet, election))
 
-        this.connections = connections
+        this.connections = connectionSet
         this.election = election
     }
 

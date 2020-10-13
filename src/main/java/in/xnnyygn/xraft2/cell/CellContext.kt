@@ -14,6 +14,18 @@ interface CellContext {
 
     fun startChild(cell: Cell): CellRef
 
+    fun suspendBy(cell: Cell)
+
+    fun suspendBy(cell: CellRef)
+
+    fun resumeParent()
+
+    fun resumeParent(result: Event)
+
+    fun resume(cell: CellRef)
+
+    fun resume(cell: CellRef, result: Event)
+
     fun schedule(time: Long, unit: TimeUnit, event: Event): ScheduledFuture<*>
 
     fun findCell(path: String): CellRef

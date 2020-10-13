@@ -77,4 +77,44 @@ class CellSystemTest {
         countDownLatch.await()
         system.stop()
     }
+
+    class MainCell(private val countDownLatch: CountDownLatch) : Cell() {
+        override fun start(context: CellContext) {
+            context.logger.info("suspend by sub")
+            context.suspendBy(SubCell())
+        }
+
+        override fun receive(context: CellContext, event: Event) {
+            if (event == PrintEvent) {
+                println("hello")
+                countDownLatch.countDown()
+                context.stopSelf()
+            }
+        }
+    }
+
+    class SubCell : Cell() {
+        override fun start(context: CellContext) {
+            context.schedule(200L, TimeUnit.MILLISECONDS, ResumeParentEvent)
+        }
+
+        override fun receive(context: CellContext, event: Event) {
+            context.logger.info("resume main")
+            context.resumeParent()
+            context.stopSelf()
+        }
+    }
+
+    object ResumeParentEvent : Event
+
+    @Test
+    fun testSuspendResume() {
+        val countDownLatch = CountDownLatch(1)
+        val system = CellSystem()
+        val mainCell = system.add(MainCell(countDownLatch))
+        system.start()
+        mainCell.tell(PrintEvent)
+        countDownLatch.await()
+        system.stop()
+    }
 }
